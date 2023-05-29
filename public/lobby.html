@@ -12,8 +12,7 @@
       background-color: darkseagreen
     }
 
-    .join_room_response {
-      margin: 1px 1px 1px 10px;
+    .join_room_response, .left_room_response {
       background-color: lightgoldenrodyellow;
     }
 
@@ -23,6 +22,9 @@
       margin: 1px 1px 1px 1px;
     }
 
+    #messagePane {
+      background-color: rgb(208, 227, 216);
+    }
     
     </style>
     <title>Reversi Lobby</title>
@@ -35,7 +37,7 @@
 
       <div class="row m-3 headerrow">
         <div class="col text-center">
-          <h1>Lobby</h1>
+          <h1 id='lobbyTitle'>Lobby</h1>
         </div>
       </div>
 
@@ -44,21 +46,40 @@
       <div class="row m-3">
           <div class="col">
 
-              <div class="row align-items-center justify-content-center m-3">
-                  <div class="col-8">
+              <div class="row align-items-start justify-content-center">
+                  <div class="col-md-4">
+                    <h4>Players</h4>
+                    <div id ="players" class="align-items-end text-right m-3">
+
+                    </div>
+
+                  </div>
+
+
+                  <div class="col-md-8" id="messagePane">
+
+                    <div>
+                      <h4>Messages</h4>
+
+                    </div>
+
+
                     <div class="input-group">
                       <input type="text" class="form-control text-nowrap" id="chatMessage" placeholder="Enter your message here"
-                        aria-label="Enter your message to send to the chat room"
-                      />
+                          aria-label="Enter your message to send to the chat room"
+                        />
                       <button type="submit" id="chatButton" class="btn btn-primary text-nowrap" onclick=sendChatMessage()>Send</button>
                     </div>
-                  </div>
+
+                    <div id="messages"></div>
+
                 </div>
+              </div>
 
 
 
-            <h4>Messages</h4>
-            <div id="messages"></div>
+            
+            
           </div>
         </div>
 
@@ -68,7 +89,10 @@
         
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.0/jquery.min.js" integrity="sha384-NXgwF8Kv9SSAr+jemKKcbvQsz+teULH/a5UNJvZc6kP47hZgl62M1vGnw6gHQhb1" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js" integrity="sha384-4D3G3GikQs6hLlLZGdz5wLFzuqE9v4yVGAcOH86y23JqBDPzj9viv0EqyfIa6YUL" crossorigin="anonymous"></script>
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js" integrity="sha384-KA7m0DwgQGmeRC6Xre3hJO+ZxpanOauVh4Czdqbg8lDKJ3bZZYVYmP+y4F31x40L" crossorigin="anonymous"></script>    
     <script src="assets/js/main.js"></script>
+
+  
   </body>
 </html>
