@@ -404,7 +404,7 @@ io.on('connection', (socket) => {
                     socket_id: requested_user
                 };
                 socket.emit('game_start_response', response);
-                socket.to(requested_user).emit('game_start', response);
+                socket.to(requested_user).emit('game_start_response', response);
                 serverLog('game_start command success', JSON.stringify(response));
             }
         
