@@ -131,6 +131,10 @@ io.on('connection', (socket) => {
                 io.of('/').to(room).emit('join_room_response', response);
                 
                 serverLog('join_room command success', JSON.stringify(response));
+                if(room !== "Lobby") {
+                    send_game_update(socket, room, 'initial update');
+                }
+                    
                 }
             }
         
@@ -501,6 +505,228 @@ io.on('connection', (socket) => {
 
     });
 
+
+    socket.on('play_token', (payload) => {
+        serverLog('Server received a command','\'play_token\'', JSON.stringify(payload));
+        
+        /* check if data coming from client is good*/
+        if ((typeof payload == 'undefined') || (payload === null)) {
+            response = {};
+            response.result = 'fail';
+            response.messages = 'client did not send a payload';
+            socket.emit('play_token_response', response);
+            serverLog('play_token command failed', JSON.stringify(response));
+            return;
+        }
+
+        let player = players[socket.id];
+        
+        if ((typeof player == 'undefined') || (player === null)) {
+            response = {};
+            response.result = 'fail';
+            response.messages = 'play_token came from unreg player';
+            socket.emit('play_token_response', response);
+            serverLog('play_token command failed', JSON.stringify(response));
+            return;
+        }
+
+        let username= player.username;
+        if ((typeof username == 'undefined') || (username === null)) {
+            response = {};
+            response.result = 'fail';
+            response.messages = 'play_token cmd did not come from reg username';
+            socket.emit('play_token_response', response);
+            serverLog('play_token cmd failed', JSON.stringify(response));
+            return;
+        }
+
+        let game_id = player.room;
+        if ((typeof game_id == 'undefined') || (game_id === null)) {
+            response = {};
+            response.result = 'fail';
+            response.messages = 'no valid game assoc with play_token cmd';
+            socket.emit('play_token_response', response);
+            serverLog('play_token cmd failed', JSON.stringify(response));
+            return;
+        }
+
+        let row = payload.row;
+        if ((typeof row == 'undefined') || (row === null)) {
+            response = {};
+            response.result = 'fail';
+            response.messages = 'no valid row assoc with play_token cmd';
+            socket.emit('play_token_response', response);
+            serverLog('play_token cmd failed', JSON.stringify(response));
+            return;
+        }
+
+        let col = payload.col;
+        if ((typeof col == 'undefined') || (col === null)) {
+            response = {};
+            response.result = 'fail';
+            response.messages = 'no valid col assoc with play_token cmd';
+            socket.emit('play_token_response', response);
+            serverLog('play_token cmd failed', JSON.stringify(response));
+            return;
+        }
+
+        let color = payload.color;
+        if ((typeof color == 'undefined') || (color === null)) {
+            response = {};
+            response.result = 'fail';
+            response.messages = 'no valid color assoc with play_token cmd';
+            socket.emit('play_token_response', response);
+            serverLog('play_token cmd failed', JSON.stringify(response));
+            return;
+        }
+
+        let game = games[game_id];
+        if ((typeof game == 'undefined') || (game === null)) {
+            response = {};
+            response.result = 'fail';
+            response.messages = 'no valid game assoc with play_token cmd';
+            socket.emit('play_token_response', response);
+            serverLog('play_token cmd failed', JSON.stringify(response));
+            return;
+        }
+
+        let response = {
+            result: "success"
+        }
+        socket.emit('play_token_response ', response);
+
+        // execute move 
+        if(color == 'white'){
+            game.board[row][col] = 'w';
+            game.whose_turn = 'black';
+          }
+          else if(color == 'black'){
+            game.board[row][col] = 'b';
+            game.whose_turn = 'white';
+          }
+
+          send_game_update(socket,game_id, 'played a token');
+
+    });
+
+    
+
 });
 
+
+
+/*********************** */
+
+// game state 
+let games= [];
+
+function create_new_game() {
+    let new_game = {};
+    new_game.player_white = {};
+    new_game.player_white.socket = "";
+    new_game.player_white.username = "";
+    new_game.player_black = {};
+    new_game.player_black.socket = "";
+    new_game.player_black.username = "";
+
+    var d = new Date();
+    new_game.last_move = d.getTime();
+
+    new_game.whose_turn = 'white';
+
+    new_game.board = [
+        [' ',' ',' ',' ',' ',' ',' ',' '],
+        [' ',' ',' ',' ',' ',' ',' ',' '],
+        [' ',' ',' ',' ',' ',' ',' ',' '],
+        [' ',' ',' ','w','b',' ',' ',' '], //4
+        [' ',' ',' ','b','w',' ',' ',' '], //5
+        [' ',' ',' ',' ',' ',' ',' ',' '],
+        [' ',' ',' ',' ',' ',' ',' ',' '],
+        [' ',' ',' ',' ',' ',' ',' ',' ']
+    ];
+
+    return new_game;
+}
+
+function send_game_update(socket, game_id, message) {
+    //check to see if game with game id exists if not make it
+    //make sure only 2 people in room 
+    //assign this socket a color 
+    //check if game is over 
+
+
+    if ((typeof games[game_id] == 'undefined') || (games[game_id] === null)) {
+        console.log('no game exists with game id:' + game_id+ '. making a new game for '+socket.id)
+        games[game_id] = create_new_game();
+    }
+
+
+    io.of('/').to(game_id).allSockets().then((sockets) => {
+
+        const iterator = sockets[Symbol.iterator]();
+        if (sockets.size >= 1) {
+            let first = iterator.next().value;
+            if((games[game_id].player_white.socket != first) && (games[game_id].player_black.socket != first)) {
+                // check if theyre 1 or 2 otherwise bye 
+                if (games[game_id].player_white.socket === "") {
+                    // white
+                    console.log("white is assigned to" + first);
+                    games[game_id].player_white.socket = first;
+                    games[game_id].player_white.username = players[first].username;
+                }
+                else if (games[game_id].player_black.socket === "") {
+                    // black
+                    console.log("black is assigned to" + first);
+                    games[game_id].player_black.socket = first;
+                    games[game_id].player_black.username = players[first].username;
+                }
+                else {
+                    // bye
+                    console.log("kicking " + first + "out of game " + game_id);
+                    io.in(first).socketsLeave([game_id]);
+                }
+            }
+        }
+
+        if (sockets.size >= 2) {
+            let second = iterator.next().value;
+            if((games[game_id].player_white.socket != second) && (games[game_id].player_black.socket != second)) {
+                // check if theyre 1 or 2 otherwise bye 
+                if (games[game_id].player_white.socket === "") {
+                    // white
+                    console.log("white is assigned to" + second);
+                    games[game_id].player_white.socket = second;
+                    games[game_id].player_white.username = players[second].username;
+                }
+                else if (games[game_id].player_black.socket === "") {
+                    // black
+                    console.log("black is assigned to" + second);
+                    games[game_id].player_black.socket = second;
+                    games[game_id].player_black.username = players[second].username;
+                }
+                else {
+                    // bye
+                    console.log("kicking " + second + "out of game " + game_id);
+                    io.in(second).socketsLeave([game_id]);
+                }
+            }
+        }
+
+
+        //send game update 
+        let payload={
+            result: 'success',
+            game_id: game_id,
+            game: games[game_id],
+            message: message
+        };
+
+        io.of("/").to(game_id).emit('game_update', payload);
+
+
+    });
+
+    // check if game is over 
+ 
+}
 

@@ -195,7 +195,7 @@ socket.on('join_room_response', (payload) => {
 
 
     // announce in chat
-    let newHTML = '<p class=\'join_room_response\'>'+payload.username+' joined the ' +payload.room+'. (there are '+payload.count+' users in this room)</p>';
+    let newHTML = '<p class=\'join_room_response\'>'+payload.username+' joined the chatroom. there are '+payload.count+' users in this room)</p>';
     let newNode = $(newHTML);
     newNode.hide();
     $('#messages').prepend(newNode);
@@ -260,6 +260,151 @@ socket.on('send_chat_message_response', (payload) => {
     $('#messages').prepend(newNode);
     newNode.show('fade', 500);
 })
+
+
+let old_board = [
+    ['?','?','?','?','?','?','?','?'],
+    ['?','?','?','?','?','?','?','?'],
+    ['?','?','?','?','?','?','?','?'],
+    ['?','?','?','?','?','?','?','?'], //4
+    ['?','?','?','?','?','?','?','?'], //5
+    ['?','?','?','?','?','?','?','?'],
+    ['?','?','?','?','?','?','?','?'],
+    ['?','?','?','?','?','?','?','?']
+];
+
+let my_color = "";
+
+
+socket.on('game_update', (payload) => {
+    console.log("in game update");
+    if ((typeof payload == 'undefined') || (payload === null)) {
+        console.log('Server did not send a payload');
+        return;
+    }
+
+    if(payload.result === 'fail') {
+        console.log(payload.message)
+        return;
+    }
+
+    // client keeps track of game board 
+
+    let board = payload.game.board;
+    if ((typeof board == 'undefined') || (board === null)) {
+        console.log('Server did not send a board to play');
+    }
+
+    // update color
+    if (socket.id === payload.game.player_white.socket) {
+        my_color = "white";
+    } else if (socket.id === payload.game.player_black.socket) {
+        my_color = "black";
+    } else {
+        //problem
+        window.location.href = 'lobby.html?username=' + username;
+        return;
+    }
+
+
+    $('#my_color').html('<h3 id="my_color">I am ' + my_color + '</h3>');
+
+
+    // animate changes to the board 
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            //check if sever changed any spaces 
+            if(old_board[row][col] !== board[row][col]) {
+                let graphic = "";
+                let altTag = "";
+                if ((old_board[row][col] === '?') && (board[row][col] === ' ')) {
+                    graphic = "empty.gif";
+                    altTag = "empty space";
+                }
+                else if ((old_board[row][col] === '?') && (board[row][col] === 'w')) {
+                    console.log("to white")
+                    graphic = "empty_to_white.gif";
+                    altTag = "white token";
+                }
+                else if ((old_board[row][col] === '?') && (board[row][col] === 'b')) {
+                    console.log("to black")
+                    graphic = "empty_to_black.gif";
+                    altTag = "black token";
+                }
+                else if ((old_board[row][col] === ' ') && (board[row][col] === 'w')) {
+                    graphic = "empty_to_white.gif";
+                    altTag = "white token";
+                }
+                else if ((old_board[row][col] === ' ') && (board[row][col] === 'b')) {
+                    graphic = "empty_to_black.gif";
+                    altTag = "black token";
+                }
+                else if ((old_board[row][col] === 'w') && (board[row][col] === ' ')) {
+                    graphic = "white_to_empty.gif";
+                    altTag = "empty space";
+                }
+                else if ((old_board[row][col] === 'b') && (board[row][col] === ' ')) {
+                    graphic = "black_to_empty.gif";
+                    altTag = "empty space";
+                }
+                else if ((old_board[row][col] === 'w') && (board[row][col] === 'b')) {
+                    graphic = "white_to_black.gif";
+                    altTag = "white tokem";
+                }
+                else if ((old_board[row][col] === 'b') && (board[row][col] === 'w')) {
+                    graphic = "black_to_white.gif";
+                    altTag = "black token";
+                } else {
+                    console.log("in else")
+                    graphic = "error.gif";
+                    altTag = "error token";
+                }
+
+                const t = Date.now();
+                $('#'+row+'_'+col).html('<img class="img-fluid" src="assets/images/'+graphic+'?time=' + t + '" alt="' + altTag + '" />');
+
+
+                $('#'+row+'_'+col).off('click');
+
+                if (board[row][col] === " ") {
+                    // add interactivity
+                    $('#'+row+'_'+col).addClass("hovered_over");
+
+                    $('#' + row + '_' + col).click(function (r, c) {
+                        return function () {
+                          var payload = {};
+                          payload.row = r;
+                          payload.col = c;
+                          payload.color = my_color;
+                          console.log('***Client Log Message***: \'play_token\' payload: ' + JSON.stringify(payload));
+                          socket.emit('play_token', payload);
+                        };
+                      }(row, col));
+                } else {
+                    $('#'+row+'_'+col).removeClass("hovered_over");
+                }
+
+            }
+        }
+    }
+
+    old_board = board;
+
+})
+
+
+socket.on('play_token_response', function (payload) {
+    if ((typeof payload == 'undefined') || (payload === null)) {
+        console.log('Server did not send a payload');
+        return;
+    }
+
+    if(payload.result === 'fail') {
+        console.log(payload.message)
+        return;
+    }
+  
+  });
 
 
 
