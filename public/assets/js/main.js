@@ -222,7 +222,7 @@ socket.on('player_disconnected', (payload) => {
         domElements.hide("fade", 500);
     }
 
-    let newHTML = '<p class=\'left_room_response\'>'+payload.username+' left the ' +payload.room+'. (there are '+payload.count+' users in this room)</p>';
+    let newHTML = '<p class=\'left_room_response\'>'+payload.username+' left the chatroom. (there are '+payload.count+' users in this room)</p>';
     let newNode = $(newHTML);
     newNode.hide();
     $('#messages').prepend(newNode);
@@ -309,10 +309,22 @@ socket.on('game_update', (payload) => {
 
     $('#my_color').html('<h3 id="my_color">I am ' + my_color + '</h3>');
 
+    let whitesum = 0;
+    let blacksum = 0;
+
 
     // animate changes to the board 
     for (let row = 0; row < 8; row++) {
         for (let col = 0; col < 8; col++) {
+
+            if (board[row][col] === 'w') {
+                whitesum++;
+            }
+            else if (board[row][col] === 'b') {
+                blacksum++;
+            }
+
+
             //check if sever changed any spaces 
             if(old_board[row][col] !== board[row][col]) {
                 let graphic = "";
@@ -388,9 +400,11 @@ socket.on('game_update', (payload) => {
         }
     }
 
+    $('#whitesum').html(whitesum);
+    $('#blacksum').html(blacksum);
     old_board = board;
 
-})
+});
 
 
 socket.on('play_token_response', function (payload) {
@@ -407,6 +421,32 @@ socket.on('play_token_response', function (payload) {
   });
 
 
+  socket.on('game_over', (payload) => {
+    if ((typeof payload == 'undefined') || (payload === null)) {
+        console.log('Server did not send a payload');
+        return;
+    }
+
+    if(payload.result === 'fail') {
+        console.log(payload.message)
+        return;
+    }
+
+    // announce with a button to lobby
+    let nodeA = $("<div id='game_over'></div>");
+    let nodeB = $("<h1>Game Over</h1>");
+    let nodeC = $("<h2>" + payload.who_won + " won!</h2>");
+    let nodeD = $("<a href='lobby.html?username="+username+"' class='btn btn-lg btn-success' role='button'>Return to lobby</a>");
+  
+    nodeA.append(nodeB);
+    nodeA.append(nodeC);
+    nodeA.append(nodeD);
+    nodeA.hide();
+    $('#game_over').replaceWith(nodeA);
+    nodeA.show("fade", 1000);
+  });
+
+
 
 /*request to join chatroom*/
 $( () => {
@@ -418,6 +458,9 @@ $( () => {
 });
 
 $('#lobbyTitle').html(username + "'s Lobby");
+
+$('#quit').html("<a href='lobby.html?username="+username+"' class='btn btn-danger' role='button'>Quit</a>");
+
 
 
 $("#chatMessage").keypress(function(e) {
