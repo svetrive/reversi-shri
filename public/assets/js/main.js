@@ -263,17 +263,18 @@ socket.on('send_chat_message_response', (payload) => {
 
 
 let old_board = [
-    ['?','?','?','?','?','?','?','?'],
-    ['?','?','?','?','?','?','?','?'],
-    ['?','?','?','?','?','?','?','?'],
-    ['?','?','?','?','?','?','?','?'], //4
-    ['?','?','?','?','?','?','?','?'], //5
-    ['?','?','?','?','?','?','?','?'],
-    ['?','?','?','?','?','?','?','?'],
-    ['?','?','?','?','?','?','?','?']
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '], //4
+    [' ',' ',' ',' ',' ',' ',' ',' '], //5
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' ']
 ];
 
 let my_color = "";
+let interval_timer;
 
 
 socket.on('game_update', (payload) => {
@@ -307,7 +308,23 @@ socket.on('game_update', (payload) => {
     }
 
 
-    $('#my_color').html('<h3 id="my_color">I am ' + my_color + '</h3>');
+    if(my_color === 'white') {
+        $('#my_color').html('<h3 id="my_color">I am white</h3>');
+
+    } else if(my_color === 'black') {
+        $('#my_color').html('<h3 id="my_color">I am black</h3>');
+    } else {
+        $('#my_color').html('<h3 id="my_color">I do not know what color i am</h3>');
+    }
+
+    if(payload.game.whose_turn === 'white') {
+        $('#my_color').append('<h3>It is white\'s turn</h3>');
+
+    } else if(payload.game.whose_turn === 'black') {
+        $('#my_color').append('<h3>It is black\'s turn</h3>');
+    } else {
+        $('#my_color').append('<h3>I do not know who\'s turn it is</h3>');
+    }
 
     let whitesum = 0;
     let blacksum = 0;
@@ -374,31 +391,63 @@ socket.on('game_update', (payload) => {
 
                 const t = Date.now();
                 $('#'+row+'_'+col).html('<img class="img-fluid" src="assets/images/'+graphic+'?time=' + t + '" alt="' + altTag + '" />');
+            }
 
+            // set up interactivity
 
-                $('#'+row+'_'+col).off('click');
+            $('#'+row+'_'+col).off('click');
+            $('#'+row+'_'+col).removeClass("hovered_over");
 
-                if (board[row][col] === " ") {
+            // if it my turn
+            if(payload.game.whose_turn === my_color) {
+                // is the current spot a legal move
+                if(payload.game.legal_moves[row][col] === my_color.substr(0,1)) {
                     // add interactivity
                     $('#'+row+'_'+col).addClass("hovered_over");
 
                     $('#' + row + '_' + col).click(function (r, c) {
                         return function () {
-                          var payload = {};
-                          payload.row = r;
-                          payload.col = c;
-                          payload.color = my_color;
-                          console.log('***Client Log Message***: \'play_token\' payload: ' + JSON.stringify(payload));
-                          socket.emit('play_token', payload);
+                            var payload = {};
+                            payload.row = r;
+                            payload.col = c;
+                            payload.color = my_color;
+                            console.log('***Client Log Message***: \'play_token\' payload: ' + JSON.stringify(payload));
+                            socket.emit('play_token', payload);
                         };
-                      }(row, col));
-                } else {
-                    $('#'+row+'_'+col).removeClass("hovered_over");
+                        }(row, col));
                 }
-
-            }
+            }       
         }
     }
+
+    clearInterval(interval_timer);
+    interval_timer = setInterval( ( (last_time) => {
+
+        return ( () => {
+            let d = new Date();
+            let elapsed_m = d.getTime() - last_time;
+            let minutes = Math.floor(elapsed_m/(60*1000));
+            let seconds = Math.floor((elapsed_m % (60 * 1000))/1000);
+            let total = minutes * 60 + seconds;
+            if(total>100) {
+                total = 100;
+            }
+            
+            $("#elapsed").css("width", total+"%").attr("aria-valuenow",total);
+            let timestring = ""+seconds;
+            timestring = timestring.padStart(2,'0');
+            timestring = minutes+":"+timestring;
+            if (total < 100) {
+                $("#elapsed").html(timestring);
+            }
+            else {
+                $("#elapsed").html("Times up!");
+            }
+        
+        });
+
+    })(payload.game.last_move_time) , 1000);
+
 
     $('#whitesum').html(whitesum);
     $('#blacksum').html(blacksum);
@@ -414,7 +463,8 @@ socket.on('play_token_response', function (payload) {
     }
 
     if(payload.result === 'fail') {
-        console.log(payload.message)
+        console.log(payload.message);
+        alert(payload.message);
         return;
     }
   
