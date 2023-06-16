@@ -227,6 +227,7 @@ socket.on('player_disconnected', (payload) => {
     newNode.hide();
     $('#messages').prepend(newNode);
     newNode.show('fade', 500);
+    alert("Oh no! " + payload.username + " left.");
 })
 
 
@@ -259,6 +260,9 @@ socket.on('send_chat_message_response', (payload) => {
     newNode.hide();
     $('#messages').prepend(newNode);
     newNode.show('fade', 500);
+
+    var snd = new Audio("assets/newMsg.mp3"); // buffers automatically when created
+    snd.play();
 })
 
 
@@ -494,6 +498,10 @@ socket.on('play_token_response', function (payload) {
     nodeA.hide();
     $('#game_over').replaceWith(nodeA);
     nodeA.show("fade", 1000);
+
+    $('#gameControls').hide();
+
+    alert(payload.who_won + " won! GAME OVER.");
   });
 
 
